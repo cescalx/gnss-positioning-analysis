@@ -1,6 +1,6 @@
 import numpy as np
 
-# Physical constants
+# physical constants
 MU = 3.986005e14          # Earth's gravitational constant [m^3/s^2]
 OMEGA_E = 7.2921151467e-5 # Earth's rotation rate [rad/s]
 
@@ -26,7 +26,7 @@ def solve_kepler(mean_anomaly, eccentricity, tolerance=1e-12):
     return E
 
 
-#orbital parameters into a satellite position in ECEF coordinates.
+# orbital parameters into a satellite position in ECEF coordinates.
 def satellite_position(ephemeris, transmit_time):
     """
     Calculate GPS satellite ECEF position from broadcast ephemeris.
@@ -66,32 +66,32 @@ def satellite_position(ephemeris, transmit_time):
     cic = float(ephemeris["Cic"])
     cis = float(ephemeris["Cis"])
 
-    # Time from ephemeris reference epoch
+    # time from ephemeris reference epoch
     tk = transmit_time - toe
 
-    # Correct for GPS week crossover
+    # correct for GPS week crossover
     if tk > 302400:
         tk -= 604800
     elif tk < -302400:
         tk += 604800
 
-    # Computed mean motion
+    # computed mean motion
     n0 = np.sqrt(MU / A**3)
     n = n0 + delta_n
 
-    # Mean anomaly
+    # mean anomaly
     M = M0 + n * tk
 
-    # Solve Kepler equation
+    # solve Kepler equation
     E = solve_kepler(M, e)
 
-    # True anomaly
+    # true anomaly
     v = np.arctan2(
         np.sqrt(1 - e**2) * np.sin(E),
         np.cos(E) - e
     )
 
-    # Argument of latitude
+    # argument of latitude
     phi = v + omega
 
     # Harmonic corrections
@@ -99,23 +99,23 @@ def satellite_position(ephemeris, transmit_time):
     dr = crc * np.cos(2 * phi) + crs * np.sin(2 * phi)
     di = cic * np.cos(2 * phi) + cis * np.sin(2 * phi)
 
-    # Corrected values
+    # corrected values
     u = phi + du
     r = A * (1 - e * np.cos(E)) + dr
     i = i0 + di + idot * tk
 
-    # Orbital plane coordinates
+    # orbital plane coordinates
     x_orb = r * np.cos(u)
     y_orb = r * np.sin(u)
 
-    # Corrected longitude of ascending node
+    # corrected longitude of ascending node
     omega_k = (
         omega0
         + (omega_dot - OMEGA_E) * tk
         - OMEGA_E * toe
     )
 
-    # Convert to Earth-centred Earth-fixed coordinates
+    # convert to Earth-centred Earth-fixed coordinates
     x = x_orb * np.cos(omega_k) - y_orb * np.cos(i) * np.sin(omega_k)
     y = x_orb * np.sin(omega_k) + y_orb * np.cos(i) * np.cos(omega_k)
     z = y_orb * np.sin(i)

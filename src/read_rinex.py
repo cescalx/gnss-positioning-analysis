@@ -30,7 +30,7 @@ def gps_seconds_of_week(datetime64):
 
     return float(seconds_of_week)
 
-# Load first RINEX observation file
+# load first RINEX observation file
 obs = gr.load("data/real/observations.16o")
 nav = gr.load("data/real/navigation.16n")
 
@@ -72,7 +72,7 @@ print(f"Z = {position[2]:,.2f} m")
 print(f"\nDistance from Earth's centre:")
 print(f"{np.linalg.norm(position):,.2f} m")
 
-# Get G01 pseudorange at the first observation epoch
+# get G01 pseudorange at the first observation epoch
 epoch = obs.time.values[0]
 receive_time = gps_seconds_of_week(epoch)
 
@@ -85,10 +85,10 @@ first_epoch = obs.sel(time=epoch)
 
 pseudorange = float(first_epoch["C1"].sel(sv="G01").values)
 
-# Estimate signal travel time
+# estimate signal travel time
 travel_time = pseudorange / C
 
-# Use ephemeris Toe as our GPS-time reference for this simple test
+# use ephemeris Toe as our GPS-time reference for this simple test
 test_receive_time = float(ephem["Toe"])
 test_transmit_time = test_receive_time - travel_time
 
@@ -98,7 +98,7 @@ print(f"{travel_time:.6f} seconds")
 print("\nEstimated transmit time:")
 print(f"{test_transmit_time:.6f} seconds")
 
-# Recalculate satellite position at transmit time
+# recalculate satellite position at transmit time
 position_tx = satellite_position(ephem, test_transmit_time)
 
 print("\nECEF position at estimated transmit time:")
@@ -106,8 +106,7 @@ print(f"X = {position_tx[0]:,.2f} m")
 print(f"Y = {position_tx[1]:,.2f} m")
 print(f"Z = {position_tx[2]:,.2f} m")
 
-#other satellites
-# Find GPS satellites with valid pseudorange measurements
+#  find GPS satellites with valid pseudorange measurements
 valid_satellites = []
 
 for satellite in obs.sv.values:
@@ -130,7 +129,7 @@ for satellite in valid_satellites:
 
     records = nav.sel(sv=satellite).dropna(dim="time", how="all")
 
-    # Choose the ephemeris closest to, but not after, the observation epoch
+    # choose the ephemeris closest to but not after the observation epoch
     valid_times = records.time.values[
         records.time.values <= epoch
     ]
@@ -142,11 +141,11 @@ for satellite in valid_satellites:
     ephem_time = valid_times[-1]
     ephem = records.sel(time=ephem_time)
 
-    # Estimate signal travel time
+    # estimate signal travel time
     travel_time = pseudorange / C
     transmit_time = receive_time - travel_time
 
-    # Satellite clock correction
+    # satellite clock correction
     af0 = float(ephem["SVclockBias"])
     af1 = float(ephem["SVclockDrift"])
     af2 = float(ephem["SVclockDriftRate"])
@@ -167,14 +166,14 @@ for satellite in valid_satellites:
         + af2 * dt**2
     )
 
-    # Correct the pseudorange
+    # correct the pseudorange
     corrected_pseudorange = pseudorange + C * sat_clock
 
-    # Recalculate signal travel time
+    # recalculate signal travel time
     travel_time = corrected_pseudorange / C
     transmit_time = receive_time - travel_time
 
-    # Calculate satellite ECEF position
+    # calculate satellite ECEF position
     position = satellite_position(
         ephem,
         transmit_time
@@ -184,7 +183,7 @@ for satellite in valid_satellites:
           travel_time
     )
 
-    # Store corrected pseudorange + satellite position
+    # store corrected pseudorange + satellite position
     satellite_data.append([
         satellite,
         corrected_pseudorange,
@@ -207,7 +206,7 @@ for row in satellite_data:
         f"Z = {z:,.2f}"
     )
 
-# Convert satellite data into arrays for positioning
+# convert satellite data into arrays for positioning
 satellite_positions = np.array([
     [row[2], row[3], row[4]]
     for row in satellite_data
@@ -218,7 +217,7 @@ pseudoranges = np.array([
     for row in satellite_data
 ])
 
-# Solve for receiver position
+# solve for receiver position
 receiver_state, residuals = solve_receiver_position(
     satellite_positions,
     pseudoranges
@@ -237,7 +236,7 @@ print(f"{clock_bias:,.2f} m")
 print("\nDistance from Earth's centre:")
 print(f"{np.linalg.norm([x, y, z]):,.2f} m")
 
-# Convert receiver ECEF position to latitude, longitude and altitude
+# convert receiver ECEF position to latitude, longitude and altitude
 latitude, longitude, altitude = ecef_to_geodetic(x, y, z)
 
 print("\nEstimated receiver location:")
@@ -257,7 +256,7 @@ print(f"Mean residual = {np.mean(residuals):.2f} m")
 print(f"RMSE = {rmse:.2f} m")
 print(f"Maximum absolute residual = {np.max(np.abs(residuals)):.2f} m")
 
-# Plot pseudorange residuals
+# plot pseudorange residuals
 satellite_names = valid_satellites[:len(residuals)]
 
 plt.figure(figsize=(10, 5))
